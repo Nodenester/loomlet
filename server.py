@@ -23,21 +23,29 @@ if "--status" in sys.argv:
     STATE_DIR = Path(sys.argv[sys.argv.index("--status") + 1]).resolve()
 
 
+def _read_json(path: Path, default):
+    """BOM-tolerant, error-tolerant state read — a bad file must never 502 the site."""
+    try:
+        return json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return default
+
+
 def status_payload() -> bytes:
     agents_all = {}
     meta_all = {}
     if STATE_DIR:
-        af = STATE_DIR / "agents.json"
-        if af.exists():
-            agents_all = json.loads(af.read_text(encoding="utf-8"))
-        mf = STATE_DIR / "projects_meta.json"
-        if mf.exists():
-            meta_all = json.loads(mf.read_text(encoding="utf-8"))
+        agents_all = _read_json(STATE_DIR / "agents.json", {})
+        meta_all = _read_json(STATE_DIR / "projects_meta.json", {})
     events = []
     if STATE_DIR:
         act = STATE_DIR / "activity.jsonl"
         if act.exists():
-            for line in act.read_text(encoding="utf-8").splitlines()[-MAX_EVENTS:]:
+            try:
+                lines = act.read_text(encoding="utf-8-sig").splitlines()[-MAX_EVENTS:]
+            except OSError:
+                lines = []
+            for line in lines:
                 try:
                     events.append(json.loads(line))
                 except json.JSONDecodeError:
@@ -67,7 +75,10 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if STATE_DIR and self.path.split("?")[0] == "/api/status":
-            body = status_payload()
+            try:
+                body = status_payload()
+            except Exception:
+                body = b'{"projects": {}, "agents": {}, "events": []}'
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
