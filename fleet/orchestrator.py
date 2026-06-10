@@ -272,7 +272,12 @@ class Project:
         prompt = self._fill(PROMPTS / "planner.md", {
             "{HISTORY}": history, "{CREATED}": str(created), "{CAP}": str(self.max_issues)})
         out = claude_agent(self.name, "planner", prompt, self.coder_clone)
-        if "GOAL COMPLETE" in out.upper():
+        # Marker must be the FINAL line, exactly — a substring match once fired on
+        # a planner explaining why it would NOT declare complete. Lossy channel:
+        # parse markers deterministically or not at all.
+        last_line = next((ln.strip() for ln in reversed(out.strip().splitlines())
+                          if ln.strip()), "")
+        if last_line.upper() == "GOAL COMPLETE":
             log_event(self.name, "project_complete", reason="planner declared goal met")
             set_project_meta(self.name, complete=True)
             return False
