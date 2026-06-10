@@ -15,8 +15,8 @@
     "live_dir": "E:/Repos/Inkwell",
     "port": 8078,
     "hostname": "inkwell.byttr.se",
-    "max_issues": 8,
-    "goal": "A clean, genuinely usable live Markdown previewer: textarea editor on the left, rendered HTML preview on the right updating as you type, supporting headings, bold, italic, inline code, fenced code blocks, links, ordered/unordered lists, blockquotes, and horizontal rules. Pleasant typography, a copy-HTML button, and persistence of the draft in localStorage. Polished and responsive.",
-    "brief": "Inkwell is a live Markdown previewer: a single page with a textarea editor on the left and a rendered HTML preview on the right that updates as you type. Pure static HTML/CSS/JS in ui/, no frameworks and no external/CDN dependencies — implement the Markdown rendering yourself. It is a self-contained client-side tool with NO backend and NO /api/status — never fetch anything. Escape HTML in user input to prevent injection; render Markdown safely."
+    "max_issues": 10,
+    "goal": "A usable in-browser image editor (Photoshop-lite) on the HTML Canvas 2D API: open a local image file into a canvas workspace; a tool sidebar with live adjustable filters (brightness, contrast, saturation, grayscale, invert, blur); a freehand brush with selectable color and size; crop and resize; undo/redo history; and download the edited result as a PNG. Clean dark editor UI, responsive, keyboard-friendly. Pure static HTML/CSS/JS, no frameworks or external/CDN dependencies.",
+    "brief": "Inkwell is a browser-based image editor built on the Canvas 2D API. Single page: a tool sidebar plus a central canvas workspace. Users open a local image via FileReader, apply adjustments (brightness/contrast/saturation/grayscale/invert/blur), paint with a brush (color + size), crop/resize, undo/redo, and download the result as PNG. Pure static HTML/CSS/JS in ui/, no frameworks, no external/CDN dependencies. NO backend, never fetch remote resources — everything is client-side. When no image is loaded, show a clear drop/open prompt and keep tools disabled rather than erroring."
   }
 ]
