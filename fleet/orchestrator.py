@@ -40,6 +40,11 @@ AGENT_TIMEOUT = 1800
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 _state_lock = threading.Lock()
+# Windows: concurrent Popen calls race on inheritable pipe handles — a child
+# spawned by another thread at the same moment inherits this process's pipe
+# write-ends and keeps them open, so communicate() blocks forever even after
+# the process exits. Serialize SPAWNING only (not waiting).
+_spawn_lock = threading.Lock()
 
 TOKEN = subprocess.run(
     ["gh", "auth", "token", "--user", "Nodenester"],
@@ -81,9 +86,10 @@ def run(cmd, cwd=None, timeout=300, check=True):
     env = os.environ.copy()
     env["GH_TOKEN"] = TOKEN
     env["GIT_TERMINAL_PROMPT"] = "0"
-    p = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE, text=True,
-                         encoding="utf-8", errors="replace")
+    with _spawn_lock:
+        p = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, text=True,
+                             encoding="utf-8", errors="replace")
     try:
         out, err = p.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
