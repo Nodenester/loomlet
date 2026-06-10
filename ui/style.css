@@ -222,6 +222,130 @@ h2 {
   font-size: 18px;
 }
 
+/* Narrow-viewport pipeline: stages stacked top-to-bottom, feedback rail on the
+   right running from GATE back up to CODER. Hidden on wide viewports. */
+
+.pipeline-stack {
+  display: none;
+  grid-template-columns: minmax(0, 1fr) 1.4rem;
+  column-gap: .2rem;
+  max-width: 21rem;
+  margin-inline: auto;
+  padding: .2rem 0 .1rem;
+}
+
+.ps-stage {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .1rem;
+  padding: .6rem .8rem;
+  background: rgba(234,227,207,.03);
+  border: 1.5px solid var(--thread);
+  border-radius: 7px;
+  transition: background .3s ease, border-color .3s ease;
+}
+
+.ps-label {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  transition: color .3s ease;
+}
+
+.ps-sub {
+  color: var(--faint);
+  font-size: 11.5px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+
+.ps-stage.active {
+  background: rgba(227,167,60,.16);
+  border-color: var(--accent);
+  box-shadow: 0 0 7px rgba(227,167,60,.5);
+}
+.ps-stage.active .ps-label { color: var(--accent); }
+.ps-stage.active .ps-sub { color: var(--amber-dim); }
+
+/* Mirror a manually-toggled #stage-* .active from the (hidden) wide SVG onto
+   the stacked variant. Kept as a separate rule: browsers without :has() drop
+   only this one, and renderPipeline() sets the class directly anyway. */
+#pipeline:has(#stage-planner.active) .ps-stage[data-stage="planner"],
+#pipeline:has(#stage-coder.active)   .ps-stage[data-stage="coder"],
+#pipeline:has(#stage-tester.active)  .ps-stage[data-stage="tester"],
+#pipeline:has(#stage-gate.active)    .ps-stage[data-stage="gate"],
+#pipeline:has(#stage-deploy.active)  .ps-stage[data-stage="deploy"] {
+  background: rgba(227,167,60,.16);
+  border-color: var(--accent);
+  box-shadow: 0 0 7px rgba(227,167,60,.5);
+}
+#pipeline:has(#stage-planner.active) .ps-stage[data-stage="planner"] .ps-label,
+#pipeline:has(#stage-coder.active)   .ps-stage[data-stage="coder"] .ps-label,
+#pipeline:has(#stage-tester.active)  .ps-stage[data-stage="tester"] .ps-label,
+#pipeline:has(#stage-gate.active)    .ps-stage[data-stage="gate"] .ps-label,
+#pipeline:has(#stage-deploy.active)  .ps-stage[data-stage="deploy"] .ps-label {
+  color: var(--accent);
+}
+
+/* Flow arrow between stacked stages: short vertical line + arrowhead. */
+.ps-down {
+  grid-column: 1;
+  justify-self: center;
+  position: relative;
+  width: 2px;
+  height: 1.15rem;
+  background: var(--amber-dim);
+}
+.ps-down::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-inline: 4.5px solid transparent;
+  border-top: 7px solid var(--amber-dim);
+}
+
+/* Feedback rail: dashed red bracket from the GATE row back up to CODER,
+   arrowhead pointing left into the CODER box. */
+.ps-rail {
+  grid-column: 2;
+  grid-row: 3 / 8;
+  position: relative;
+  margin: 1.1rem 0 1.6rem;
+  border: 1.8px dashed var(--ember);
+  border-left: none;
+  border-radius: 0 9px 9px 0;
+  opacity: .85;
+}
+.ps-rail::before {
+  content: "";
+  position: absolute;
+  top: -6.5px;
+  left: -8px;
+  border-block: 5px solid transparent;
+  border-right: 8px solid var(--ember);
+}
+
+.ps-feedback {
+  grid-column: 1 / -1;
+  margin-top: .7rem;
+  text-align: center;
+  color: var(--ember);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+}
+
+@media (max-width: 620px) {
+  .pipeline-svg { display: none; }
+  .pipeline-stack { display: grid; }
+}
+
 /* ---------- project panels ---------- */
 
 .project-grid {

@@ -116,8 +116,13 @@
     });
 
     STAGES.forEach(function (stage) {
+      var on = !!active[stage];
       var g = document.getElementById('stage-' + stage);
-      if (g) g.classList.toggle('active', !!active[stage]);
+      if (g) g.classList.toggle('active', on);
+      // Narrow stacked layout duplicates the stages without ids; keep its
+      // highlight in sync so whichever variant is visible reflects the state.
+      var dups = document.querySelectorAll('.ps-stage[data-stage="' + stage + '"]');
+      for (var i = 0; i < dups.length; i++) dups[i].classList.toggle('active', on);
     });
   }
 
