@@ -1,16 +1,22 @@
 /* Loomlet — woven terminal. Warm moss-black ground, amber thread, stitched panels. */
 
 :root {
-  --bg: #0e120d;
-  --panel: #141a12;
-  --panel-2: #11160f;
-  --ink: #eae3cf;
+  /* Loom palette — issue #3 */
+  --bg: #11140f;
+  --text: #eae3cf;
+  --accent: #e3a73c;
+  --fail: #d9542b;
+  --pass: #8fb98a;
+  /* Derived tones */
+  --panel: #161a13;
+  --panel-2: #131710;
+  --ink: var(--text);
   --muted: #98927a;
   --faint: #5e5c4c;
-  --amber: #e3a73c;
+  --amber: var(--accent);
   --amber-dim: #8a6a2c;
-  --ember: #d9542b;
-  --green: #93b34c;
+  --ember: var(--fail);
+  --green: var(--pass);
   --info: #7fa6a3;
   --thread: #2c3326;
   --serif: "Palatino Linotype", Palatino, "Book Antiqua", "Iowan Old Style", Georgia, serif;
@@ -100,7 +106,7 @@ h1 {
   display: inline-block;
 }
 .dot-wait { background: var(--faint); }
-.dot-on   { background: var(--green); box-shadow: 0 0 8px rgba(147,179,76,.7); }
+.dot-on   { background: var(--green); box-shadow: 0 0 8px rgba(143,185,138,.7); }
 .dot-off  { background: var(--ember); box-shadow: 0 0 8px rgba(217,84,43,.7); animation: pulse 1.2s ease-in-out infinite; }
 
 /* ---------- offline banner ---------- */
@@ -164,10 +170,20 @@ h2 {
   outline-offset: -6px;
 }
 
+/* working: accent border + glow; idle: muted, dimmed */
 .agent-card.state-working {
-  border-color: var(--amber-dim);
-  box-shadow: 0 0 22px rgba(227,167,60,.08) inset, 0 0 14px rgba(227,167,60,.06);
+  border-color: var(--accent);
+  outline-color: rgba(227,167,60,.35);
+  box-shadow: 0 0 22px rgba(227,167,60,.10) inset, 0 0 16px rgba(227,167,60,.18);
 }
+
+.agent-card.state-idle {
+  border-color: var(--thread);
+  outline-color: rgba(234,227,207,.08);
+  opacity: .72;
+  filter: saturate(.75);
+}
+.agent-card.state-idle .agent-name { color: var(--muted); }
 
 .agent-head {
   display: flex;
@@ -246,8 +262,8 @@ h2 {
 }
 .gc-green {
   color: var(--green);
-  border-color: rgba(147,179,76,.5);
-  background: rgba(147,179,76,.08);
+  border-color: rgba(143,185,138,.5);
+  background: rgba(143,185,138,.08);
 }
 .gc-red {
   color: var(--ember);
@@ -267,7 +283,7 @@ h2 {
 }
 .gate-entry.gate-green {
   border-left-color: var(--green);
-  box-shadow: 0 0 14px rgba(147,179,76,.06) inset;
+  box-shadow: 0 0 14px rgba(143,185,138,.06) inset;
 }
 .gate-entry.gate-red {
   border-left-color: var(--ember);
@@ -373,13 +389,25 @@ h2 {
 
 .site-footer {
   margin-top: 2.6rem;
-  display: flex;
-  align-items: center;
-  gap: .8rem;
+  display: grid;
+  gap: .45rem;
   font-size: .78rem;
   color: var(--faint);
   animation: rise .5s ease-out both;
   animation-delay: .24s;
+}
+
+.foot-line {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  flex-wrap: wrap;
+}
+
+.foot-credit {
+  font-family: var(--serif);
+  font-style: italic;
+  letter-spacing: .04em;
 }
 
 .foot-thread {
