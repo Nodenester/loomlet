@@ -86,6 +86,14 @@ def run(cmd, cwd=None, timeout=300, check=True):
     env = os.environ.copy()
     env["GH_TOKEN"] = TOKEN
     env["GIT_TERMINAL_PROMPT"] = "0"
+    # Disable ALL git credential helpers for fleet subprocesses. The global
+    # helper is `gh auth git-credential`, which hits the Windows keyring — with
+    # two stored accounts, keyring access from a background process can block
+    # forever (the user called this). Clone remotes embed the token; anything
+    # else should fail fast, not hang.
+    env["GIT_CONFIG_COUNT"] = "1"
+    env["GIT_CONFIG_KEY_0"] = "credential.helper"
+    env["GIT_CONFIG_VALUE_0"] = ""
     with _spawn_lock:
         p = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
