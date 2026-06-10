@@ -129,8 +129,10 @@ h1 {
 main { display: grid; gap: 2rem; margin-top: 2.2rem; }
 
 .panel { animation: rise .5s ease-out both; }
-#agents-section   { animation-delay: .08s; }
-#activity-section { animation-delay: .16s; }
+#pipeline-section { animation-delay: .04s; }
+#projects-section { animation-delay: .08s; }
+#agents-section   { animation-delay: .12s; }
+#activity-section { animation-delay: .2s; }
 
 h2 {
   display: flex;
@@ -150,6 +152,207 @@ h2 {
   height: 1px;
   background: var(--amber);
   box-shadow: 0 0 6px rgba(227,167,60,.5);
+}
+
+/* ---------- pipeline diagram ---------- */
+
+#pipeline {
+  background: linear-gradient(160deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--thread);
+  border-radius: 6px;
+  outline: 1px dashed rgba(227,167,60,.22);
+  outline-offset: -6px;
+  padding: .9rem .9rem .5rem;
+}
+
+.pipeline-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+#pipeline .stage rect {
+  fill: rgba(234,227,207,.03);
+  stroke: var(--thread);
+  stroke-width: 1.5;
+  transition: fill .3s ease, stroke .3s ease;
+}
+
+#pipeline .stage text {
+  fill: var(--muted);
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-anchor: middle;
+}
+
+#pipeline .stage .stage-sub {
+  fill: var(--faint);
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+
+#pipeline .stage.active rect {
+  fill: rgba(227,167,60,.16);
+  stroke: var(--accent);
+  filter: drop-shadow(0 0 7px rgba(227,167,60,.5));
+}
+#pipeline .stage.active text { fill: var(--accent); }
+#pipeline .stage.active .stage-sub { fill: var(--amber-dim); }
+
+#pipeline .flow {
+  stroke: var(--amber-dim);
+  stroke-width: 2;
+}
+
+#pipeline .feedback {
+  stroke: var(--ember);
+  stroke-width: 1.8;
+  stroke-dasharray: 6 4;
+  opacity: .85;
+}
+
+#pipeline .feedback-label {
+  fill: var(--ember);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 18px;
+}
+
+/* ---------- project panels ---------- */
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.project-card {
+  background: linear-gradient(160deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--thread);
+  border-radius: 6px;
+  padding: 1rem 1.1rem 1.05rem;
+  outline: 1px dashed rgba(227,167,60,.22);
+  outline-offset: -6px;
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+  min-width: 0;
+}
+
+.project-head {
+  display: flex;
+  align-items: baseline;
+  gap: .8rem;
+  flex-wrap: wrap;
+}
+
+.project-name {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--amber);
+  overflow-wrap: anywhere;
+}
+
+.badge-complete {
+  font-size: .66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  padding: .24em .75em .2em;
+  border-radius: 999px;
+  color: var(--green);
+  border: 1px solid rgba(143,185,138,.55);
+  background: rgba(143,185,138,.1);
+}
+
+.project-goal {
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: .92rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.project-progress { display: grid; gap: .35rem; }
+
+.progress-text {
+  font-size: .78rem;
+  color: var(--ink);
+  letter-spacing: .04em;
+}
+
+.bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(234,227,207,.07);
+  border: 1px solid var(--thread);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber-dim), var(--amber));
+  box-shadow: 0 0 8px rgba(227,167,60,.4);
+  transition: width .4s ease;
+}
+
+.project-agents {
+  display: grid;
+  gap: .3rem;
+  border-top: 1px dashed var(--thread);
+  padding-top: .55rem;
+}
+
+.pa-row {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+  font-size: .8rem;
+  min-width: 0;
+}
+
+.pa-name {
+  flex: 0 0 3.5rem;
+  font-family: var(--serif);
+  font-size: .95rem;
+  color: var(--ink);
+}
+
+.pa-row.state-idle .pa-name,
+.pa-row.state-unknown .pa-name { color: var(--muted); }
+
+.pa-detail {
+  color: var(--faint);
+  font-size: .74rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.project-gates {
+  border-top: 1px dashed var(--thread);
+  padding-top: .55rem;
+  display: grid;
+  gap: .5rem;
+}
+
+.project-sub {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: .68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .3em;
+  color: var(--faint);
 }
 
 /* ---------- agent cards ---------- */
@@ -308,6 +511,13 @@ h2 {
 
 .gate-pr { white-space: nowrap; }
 
+.gate-project {
+  color: var(--info);
+  font-size: .75rem;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+
 .gate-ts {
   margin-left: auto;
   color: var(--faint);
@@ -358,6 +568,15 @@ h2 {
   flex: 0 0 auto;
   color: var(--faint);
   white-space: nowrap;
+}
+
+.evt-project {
+  flex: 0 0 auto;
+  color: var(--info);
+  white-space: nowrap;
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .evt-kind {
@@ -418,6 +637,14 @@ h2 {
 
 a { color: var(--amber); text-decoration: none; border-bottom: 1px dashed var(--amber-dim); }
 a:hover { color: var(--ink); border-bottom-color: var(--amber); }
+
+/* ---------- narrow viewports ---------- */
+
+@media (max-width: 560px) {
+  body { padding: 1.6rem .9rem 2.2rem; }
+  .evt-row { flex-wrap: wrap; gap: .35rem .9rem; }
+  .gate-ts { margin-left: 0; }
+}
 
 /* ---------- motion ---------- */
 
