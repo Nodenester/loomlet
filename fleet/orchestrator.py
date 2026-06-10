@@ -81,8 +81,22 @@ def run(cmd, cwd=None, timeout=300, check=True):
     env = os.environ.copy()
     env["GH_TOKEN"] = TOKEN
     env["GIT_TERMINAL_PROMPT"] = "0"
-    r = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True,
-                       timeout=timeout, encoding="utf-8", errors="replace")
+    p = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, text=True,
+                         encoding="utf-8", errors="replace")
+    try:
+        out, err = p.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        # Tree-kill: git/gh spawn children (git-remote-https) that survive a
+        # plain kill and keep the pipes open, blocking forever past the timeout.
+        subprocess.run(["taskkill", "/PID", str(p.pid), "/T", "/F"],
+                       capture_output=True)
+        try:
+            p.communicate(timeout=10)
+        except subprocess.TimeoutExpired:
+            pass
+        raise RuntimeError(f"cmd timed out after {timeout}s (tree-killed): {cmd}")
+    r = subprocess.CompletedProcess(cmd, p.returncode, out, err)
     if check and r.returncode != 0:
         raise RuntimeError(f"cmd failed ({r.returncode}): {cmd}\n{r.stderr[-2000:]}")
     return r
