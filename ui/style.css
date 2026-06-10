@@ -223,6 +223,100 @@ h2 {
   font-family: var(--serif);
 }
 
+/* ---------- verdicts & gates ---------- */
+
+#gate-history { animation-delay: .12s; }
+
+.gate-counters {
+  display: flex;
+  gap: .8rem;
+  margin-bottom: .9rem;
+  flex-wrap: wrap;
+}
+
+.gate-count {
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: .28em .85em .24em;
+  border-radius: 999px;
+  border: 1px solid var(--faint);
+  color: var(--muted);
+}
+.gc-green {
+  color: var(--green);
+  border-color: rgba(147,179,76,.5);
+  background: rgba(147,179,76,.08);
+}
+.gc-red {
+  color: var(--ember);
+  border-color: rgba(217,84,43,.5);
+  background: rgba(217,84,43,.08);
+}
+
+.gate-list { display: grid; gap: .7rem; }
+
+.gate-entry {
+  background: linear-gradient(160deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--thread);
+  border-left: 3px solid var(--faint);
+  border-radius: 6px;
+  padding: .65rem .95rem .6rem;
+  font-size: .82rem;
+}
+.gate-entry.gate-green {
+  border-left-color: var(--green);
+  box-shadow: 0 0 14px rgba(147,179,76,.06) inset;
+}
+.gate-entry.gate-red {
+  border-left-color: var(--ember);
+  box-shadow: 0 0 14px rgba(217,84,43,.06) inset;
+}
+
+.gate-head {
+  display: flex;
+  align-items: baseline;
+  gap: .9rem;
+  flex-wrap: wrap;
+}
+
+.gate-verdict {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  font-size: .72rem;
+}
+.gate-green .gate-verdict { color: var(--green); }
+.gate-red .gate-verdict   { color: var(--ember); }
+
+.gate-pr { white-space: nowrap; }
+
+.gate-ts {
+  margin-left: auto;
+  color: var(--faint);
+  white-space: nowrap;
+  font-size: .75rem;
+}
+
+.gate-reasons {
+  margin: .5rem 0 .1rem;
+  padding-left: 1.3rem;
+  color: var(--muted);
+}
+.gate-reasons li {
+  margin: .15rem 0;
+  overflow-wrap: anywhere;
+}
+.gate-reasons li::marker { color: var(--ember); }
+
+.gate-no-reasons {
+  margin: .45rem 0 .1rem;
+  color: var(--faint);
+  font-style: italic;
+  font-family: var(--serif);
+}
+
 /* ---------- activity feed ---------- */
 
 .activity-feed {

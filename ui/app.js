@@ -98,13 +98,7 @@
     var rows = Array.isArray(events) ? events.slice() : [];
     // Server already sends newest-first; a stable sort on ts keeps that
     // guarantee even if the payload ever arrives unordered.
-    rows.sort(function (a, b) {
-      var ta = a && a.ts ? String(a.ts) : '';
-      var tb = b && b.ts ? String(b.ts) : '';
-      if (ta < tb) return 1;
-      if (ta > tb) return -1;
-      return 0;
-    });
+    sortNewestFirst(rows);
     rows = rows.slice(0, MAX_ROWS);
 
     if (rows.length === 0) {
@@ -137,6 +131,79 @@
     });
   }
 
+  function sortNewestFirst(rows) {
+    rows.sort(function (a, b) {
+      var ta = a && a.ts ? String(a.ts) : '';
+      var tb = b && b.ts ? String(b.ts) : '';
+      if (ta < tb) return 1;
+      if (ta > tb) return -1;
+      return 0;
+    });
+    return rows;
+  }
+
+  function renderGates(events) {
+    var list = document.getElementById('gate-list');
+    var merged = document.getElementById('count-merged');
+    var rejected = document.getElementById('count-rejected');
+    list.replaceChildren();
+
+    var rows = (Array.isArray(events) ? events : []).filter(function (evt) {
+      return evt && (evt.kind === 'gate_green_merged' || evt.kind === 'gate_red');
+    });
+    sortNewestFirst(rows);
+
+    var greens = 0;
+    var reds = 0;
+
+    rows.forEach(function (evt) {
+      var isGreen = evt.kind === 'gate_green_merged';
+      if (isGreen) greens += 1; else reds += 1;
+
+      var entry = el('article', 'gate-entry ' + (isGreen ? 'gate-green' : 'gate-red'));
+
+      var head = el('div', 'gate-head');
+      head.appendChild(el('span', 'gate-verdict', isGreen ? 'merged' : 'rejected'));
+
+      var prNum = evt.pr !== undefined && evt.pr !== null ? String(evt.pr) : '';
+      if (/^\d+$/.test(prNum)) {
+        var link = el('a', 'gate-pr', 'PR #' + prNum);
+        link.href = 'https://github.com/Nodenester/loomlet/pull/' + prNum;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        head.appendChild(link);
+      } else if (prNum) {
+        head.appendChild(el('span', 'gate-pr', 'PR ' + prNum));
+      }
+
+      head.appendChild(el('span', 'gate-ts', evt.ts ? String(evt.ts) : '—'));
+      entry.appendChild(head);
+
+      if (!isGreen) {
+        var reasons = Array.isArray(evt.reasons) ? evt.reasons : [];
+        if (reasons.length > 0) {
+          var ul = el('ul', 'gate-reasons');
+          reasons.forEach(function (reason) {
+            ul.appendChild(el('li', null,
+              typeof reason === 'string' ? reason : JSON.stringify(reason)));
+          });
+          entry.appendChild(ul);
+        } else {
+          entry.appendChild(el('p', 'gate-no-reasons', 'no reasons recorded'));
+        }
+      }
+
+      list.appendChild(entry);
+    });
+
+    merged.textContent = greens + ' merged';
+    rejected.textContent = reds + ' rejected';
+
+    if (rows.length === 0) {
+      list.appendChild(el('div', 'feed-empty', 'no gate verdicts yet'));
+    }
+  }
+
   function setOnline(online) {
     var banner = document.getElementById('offline-banner');
     var dot = document.getElementById('sync-dot');
@@ -153,6 +220,7 @@
 
   function render(data) {
     renderAgents(data && data.agents);
+    renderGates(data && data.events);
     renderEvents(data && data.events);
   }
 
