@@ -1,0 +1,22 @@
+[
+  {
+    "name": "loomlet",
+    "repo": "Nodenester/loomlet",
+    "live_dir": "E:/Repos/Loomlet",
+    "port": 8077,
+    "hostname": "loomlet.byttr.se",
+    "max_issues": 10,
+    "goal": "A polished, view-only multi-project fleet dashboard. (1) A prominent header diagram of the agent pipeline structure: PLANNER -> CODER -> TESTER -> deterministic GATE -> DEPLOY, with a feedback arrow showing failures return as issues, and the currently-active stage highlighted from live data. (2) One panel per registered project showing the project goal, progress (issues done / total), its coder+tester agent states, and its gate history (merges vs rejections with PR links). Auto-refreshes live, degrades gracefully when the fleet is offline, readable on mobile, coherent 'loom' aesthetic.",
+    "brief": "Loomlet is the fleet's own live dashboard. Data source: GET /api/status on the same origin, returning JSON shaped `{\"projects\": {\"<name>\": {\"goal\": str, \"done\": int, \"total\": int, \"complete\": bool, \"agents\": {\"coder\": {\"state\",\"detail\",\"since\"}, \"tester\": {...}}, \"events\": [{\"ts\",\"kind\",...}]}}, \"agents\": {<merged, keyed project:agent>}, \"events\": [<merged, newest-first, each with a project field>]}`. Event kinds: fleet_start, planner_start, issue_created, project_complete, issue_picked, agent_start, agent_done, pr_opened, verify_start, gate_green_merged (field: pr), gate_red (fields: pr, reasons[]), deployed, orchestrator_error. It is strictly READ-ONLY: there is no control surface and there are no secrets in the payload."
+  },
+  {
+    "name": "inkwell",
+    "repo": "Nodenester/inkwell",
+    "live_dir": "E:/Repos/Inkwell",
+    "port": 8078,
+    "hostname": "inkwell.byttr.se",
+    "max_issues": 8,
+    "goal": "A clean, genuinely usable live Markdown previewer: textarea editor on the left, rendered HTML preview on the right updating as you type, supporting headings, bold, italic, inline code, fenced code blocks, links, ordered/unordered lists, blockquotes, and horizontal rules. Pleasant typography, a copy-HTML button, and persistence of the draft in localStorage. Polished and responsive.",
+    "brief": "Inkwell is a live Markdown previewer: a single page with a textarea editor on the left and a rendered HTML preview on the right that updates as you type. Pure static HTML/CSS/JS in ui/, no frameworks and no external/CDN dependencies — implement the Markdown rendering yourself. It is a self-contained client-side tool with NO backend and NO /api/status — never fetch anything. Escape HTML in user input to prevent injection; render Markdown safely."
+  }
+]
