@@ -3,38 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Loomlet — bootstrap</title>
-<style>
-  body{font-family:Consolas,monospace;background:#11140f;color:#eae3cf;max-width:900px;margin:2rem auto;padding:0 1rem;line-height:1.5}
-  h1{color:#e3a73c;font-weight:600}
-  .evt{border-left:2px solid #3a3f33;padding:.2rem .8rem;margin:.3rem 0;font-size:.85rem;white-space:pre-wrap;word-break:break-all}
-  .off{color:#d9542b}
-  small{color:#9d977f}
-</style>
+<title>Loomlet — fleet dashboard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230e120d'/%3E%3Cpath d='M3 2v12h10v-2H5V2z' fill='%23e3a73c'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>Loomlet</h1>
-<p>This is the <b>bootstrap page</b>. A fleet of Fable&nbsp;5 agents is building the real
-dashboard right now — coder writes, an adversarial tester verifies, a deterministic gate
-ships. When the first pull request passes the gate, this page gets replaced by their work.</p>
-<p><small>Live fleet feed below · refreshes every 5s · repo: <a style="color:#e3a73c" href="https://github.com/Nodenester/loomlet">Nodenester/loomlet</a></small></p>
-<div id="feed">loading…</div>
-<script>
-async function tick(){
-  const el=document.getElementById('feed');
-  try{
-    const r=await fetch('/api/status',{cache:'no-store'});
-    if(!r.ok) throw new Error(r.status);
-    const d=await r.json();
-    el.innerHTML=(d.events||[]).slice(0,80).map(e=>
-      '<div class="evt">'+e.ts+'  <b style="color:#e3a73c">'+e.kind+'</b>  '+
-      Object.entries(e).filter(([k])=>k!=='ts'&&k!=='kind').map(([k,v])=>k+'='+JSON.stringify(v)).join('  ')+
-      '</div>').join('')||'<div class="evt">no events yet</div>';
-  }catch(err){
-    el.innerHTML='<div class="evt off">fleet offline — /api/status unreachable ('+err.message+')</div>';
-  }
-}
-tick(); setInterval(tick,5000);
-</script>
+<div class="weave" aria-hidden="true"></div>
+
+<header class="site-header">
+  <div class="masthead">
+    <h1>Loomlet</h1>
+    <span class="mast-rule" aria-hidden="true"></span>
+    <div class="sync" role="status">
+      <span id="sync-dot" class="dot dot-wait" aria-hidden="true"></span>
+      <span id="sync-text">connecting…</span>
+    </div>
+  </div>
+  <p class="subtitle">An agent-built fleet dashboard — autonomous agents weaving their own UI, watched live.</p>
+</header>
+
+<div id="offline-banner" hidden>
+  <span class="banner-mark" aria-hidden="true">⨯</span>
+  fleet offline — /api/status unreachable, retrying every 5 seconds
+</div>
+
+<main>
+  <section class="panel" id="agents-section" aria-labelledby="agents-h">
+    <h2 id="agents-h"><span class="h-thread" aria-hidden="true"></span>Agents</h2>
+    <div id="agents" class="agent-grid"></div>
+  </section>
+
+  <section class="panel" id="activity-section" aria-labelledby="activity-h">
+    <h2 id="activity-h"><span class="h-thread" aria-hidden="true"></span>Activity</h2>
+    <div id="activity" class="activity-feed"></div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <span class="foot-thread" aria-hidden="true"></span>
+  woven by the fleet ·
+  <a href="https://github.com/Nodenester/loomlet">github.com/Nodenester/loomlet</a>
+</footer>
+
+<script src="app.js"></script>
 </body>
 </html>
