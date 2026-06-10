@@ -107,13 +107,27 @@ def queued_issues():
 
 
 def open_unjudged_prs():
+    # SECURITY: only engage PRs the FLEET itself produced. The repo is public,
+    # so anyone can open a PR from a fork; the tester runs with skip-permissions
+    # and would otherwise check out and execute arbitrary attacker code. Restrict
+    # to same-repo PRs on the fleet's own `issue-<n>` branches, authored by the
+    # fleet identity. The deterministic gate is the second line of defence.
     prs = gh_json(["pr", "list", "-R", REPO, "--state", "open",
-                   "--json", "number,title,headRefName,labels,mergeable"]) or []
+                   "--json", "number,title,headRefName,labels,mergeable,"
+                             "isCrossRepository,author"]) or []
+    fleet_login = REPO.split("/")[0].lower()
     out = []
     for pr in prs:
         labels = {l["name"] for l in pr["labels"]}
-        if "verdict:pass" not in labels and "verdict:fail" not in labels:
-            out.append(pr)
+        if "verdict:pass" in labels or "verdict:fail" in labels:
+            continue
+        if pr.get("isCrossRepository"):
+            continue  # fork PR — never check out untrusted code
+        if not re.fullmatch(r"issue-\d+", pr.get("headRefName", "")):
+            continue  # not a fleet-authored branch
+        if (pr.get("author") or {}).get("login", "").lower() != fleet_login:
+            continue  # not opened by the fleet identity
+        out.append(pr)
     return sorted(out, key=lambda p: p["number"])
 
 
