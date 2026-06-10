@@ -88,7 +88,8 @@ def run(cmd, cwd=None, timeout=300, check=True):
     env["GIT_TERMINAL_PROMPT"] = "0"
     with _spawn_lock:
         p = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, text=True,
+                             stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
+                             close_fds=True, text=True,
                              encoding="utf-8", errors="replace")
     try:
         out, err = p.communicate(timeout=timeout)
