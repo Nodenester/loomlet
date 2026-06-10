@@ -1,14 +1,21 @@
-/* Loomlet dashboard — polls GET /api/status every 5s and renders agents + activity.
+/* Loomlet fleet manager — polls GET /api/status every 5s and renders the
+   pipeline diagram, per-project panels, merged agents and activity.
    All payload values are rendered via textContent, never markup. */
 'use strict';
 
 (function () {
   var POLL_MS = 5000;
   var MAX_ROWS = 100;
+  var MAX_PROJECT_GATES = 25;
+  var FLASH_MS = 15000; // how long a gate/deploy event lights its stage
   var KNOWN_AGENTS = ['coder', 'tester'];
+  var STAGES = ['planner', 'coder', 'tester', 'gate', 'deploy'];
+  var GITHUB_OWNER = 'https://github.com/Nodenester/';
 
   var KIND_CLASS = {
     fleet_start: 'k-info',
+    planner_start: 'k-info',
+    issue_created: 'k-info',
     issue_picked: 'k-info',
     verify_start: 'k-info',
     agent_start: 'k-amber',
@@ -16,6 +23,7 @@
     pr_opened: 'k-amber',
     gate_green_merged: 'k-green',
     deployed: 'k-green',
+    project_complete: 'k-green',
     gate_red: 'k-red',
     orchestrator_error: 'k-red'
   };
@@ -46,19 +54,217 @@
     return String(name).toLowerCase().replace(/[^a-z0-9_-]/g, '-');
   }
 
+  function asCount(value) {
+    var n = Number(value);
+    return isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+  }
+
+  function sortNewestFirst(rows) {
+    rows.sort(function (a, b) {
+      var ta = a && a.ts ? String(a.ts) : '';
+      var tb = b && b.ts ? String(b.ts) : '';
+      if (ta < tb) return 1;
+      if (ta > tb) return -1;
+      return 0;
+    });
+    return rows;
+  }
+
+  /* ---------- pipeline diagram ---------- */
+
+  function stageForAgent(key) {
+    // Agent keys may be plain ("coder") or namespaced ("project:coder").
+    var base = String(key).split(':').pop().toLowerCase();
+    if (base.indexOf('planner') !== -1) return 'planner';
+    if (base.indexOf('coder') !== -1) return 'coder';
+    if (base.indexOf('tester') !== -1) return 'tester';
+    return null;
+  }
+
+  function renderPipeline(data) {
+    var active = {};
+
+    function markWorking(key, info) {
+      if (!info || String(info.state) !== 'working') return;
+      var stage = stageForAgent(key);
+      if (stage) active[stage] = true;
+    }
+
+    var merged = (data && data.agents && typeof data.agents === 'object') ? data.agents : {};
+    Object.keys(merged).forEach(function (key) { markWorking(key, merged[key]); });
+
+    var projects = (data && data.projects && typeof data.projects === 'object') ? data.projects : {};
+    Object.keys(projects).forEach(function (name) {
+      var perProject = projects[name] && projects[name].agents;
+      if (!perProject || typeof perProject !== 'object') return;
+      Object.keys(perProject).forEach(function (key) { markWorking(key, perProject[key]); });
+    });
+
+    // Recent gate / deploy events flash their stage for a few refreshes.
+    var now = Date.now();
+    var events = Array.isArray(data && data.events) ? data.events : [];
+    events.forEach(function (evt) {
+      if (!evt) return;
+      var kind = evt.kind;
+      if (kind !== 'gate_green_merged' && kind !== 'gate_red' && kind !== 'deployed') return;
+      var t = Date.parse(String(evt.ts || ''));
+      if (isNaN(t)) return;
+      var age = now - t;
+      if (age <= FLASH_MS && age >= -60000) { // tolerate slight clock skew
+        active[kind === 'deployed' ? 'deploy' : 'gate'] = true;
+      }
+    });
+
+    STAGES.forEach(function (stage) {
+      var g = document.getElementById('stage-' + stage);
+      if (g) g.classList.toggle('active', !!active[stage]);
+    });
+  }
+
+  /* ---------- project panels ---------- */
+
+  function gateEntry(evt, repoName) {
+    var isGreen = evt.kind === 'gate_green_merged';
+    var entry = el('article', 'gate-entry ' + (isGreen ? 'gate-green' : 'gate-red'));
+
+    var head = el('div', 'gate-head');
+    head.appendChild(el('span', 'gate-verdict', isGreen ? 'merged' : 'rejected'));
+
+    var prNum = evt.pr !== undefined && evt.pr !== null ? String(evt.pr) : '';
+    if (/^\d+$/.test(prNum)) {
+      var link = el('a', 'gate-pr', 'PR #' + prNum);
+      link.href = GITHUB_OWNER + encodeURIComponent(String(repoName)) + '/pull/' + prNum;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      head.appendChild(link);
+    } else if (prNum) {
+      head.appendChild(el('span', 'gate-pr', 'PR ' + prNum));
+    }
+
+    head.appendChild(el('span', 'gate-ts', evt.ts ? String(evt.ts) : '—'));
+    entry.appendChild(head);
+
+    if (!isGreen) {
+      var reasons = Array.isArray(evt.reasons) ? evt.reasons : [];
+      if (reasons.length > 0) {
+        var ul = el('ul', 'gate-reasons');
+        reasons.forEach(function (reason) {
+          ul.appendChild(el('li', null,
+            typeof reason === 'string' ? reason : JSON.stringify(reason)));
+        });
+        entry.appendChild(ul);
+      } else {
+        entry.appendChild(el('p', 'gate-no-reasons', 'no reasons recorded'));
+      }
+    }
+
+    return entry;
+  }
+
+  function projectGateEvents(project, name, mergedEvents) {
+    var source = Array.isArray(project && project.events)
+      ? project.events
+      : (Array.isArray(mergedEvents) ? mergedEvents : []).filter(function (evt) {
+          return evt && String(evt.project || '') === name;
+        });
+    var rows = source.filter(function (evt) {
+      return evt && (evt.kind === 'gate_green_merged' || evt.kind === 'gate_red');
+    });
+    return sortNewestFirst(rows.slice());
+  }
+
+  function agentRow(name, info) {
+    var state = info && info.state ? String(info.state) : 'unknown';
+    var row = el('div', 'pa-row state-' + safeIdPart(state));
+    row.appendChild(el('span', 'pa-name', name));
+    row.appendChild(el('span', 'state-badge', state));
+    if (info && info.detail) row.appendChild(el('span', 'pa-detail', String(info.detail)));
+    return row;
+  }
+
+  function renderProjects(data) {
+    var box = document.getElementById('projects');
+    box.replaceChildren();
+
+    var projects = (data && data.projects && typeof data.projects === 'object') ? data.projects : {};
+    var names = Object.keys(projects).sort();
+
+    if (names.length === 0) {
+      box.appendChild(el('div', 'grid-empty', 'no projects registered yet'));
+      return;
+    }
+
+    names.forEach(function (name) {
+      var p = projects[name] || {};
+      var card = el('article', 'project-card');
+      card.id = 'project-' + safeIdPart(name);
+
+      var head = el('div', 'project-head');
+      head.appendChild(el('h3', 'project-name', name));
+      if (p.complete) head.appendChild(el('span', 'badge-complete', 'complete'));
+      card.appendChild(head);
+
+      card.appendChild(el('p', 'project-goal',
+        p.goal ? String(p.goal) : '— no goal recorded —'));
+
+      var done = asCount(p.done);
+      var total = asCount(p.total);
+      var progress = el('div', 'project-progress');
+      progress.appendChild(el('span', 'progress-text',
+        done + ' / ' + total + ' issues done'));
+      var bar = el('div', 'bar');
+      var fill = el('div', 'bar-fill');
+      var pct = total > 0 ? Math.max(0, Math.min(100, (done / total) * 100)) : 0;
+      fill.style.width = pct + '%';
+      bar.appendChild(fill);
+      progress.appendChild(bar);
+      card.appendChild(progress);
+
+      var agentsBox = el('div', 'project-agents');
+      var perProject = (p.agents && typeof p.agents === 'object') ? p.agents : {};
+      var agentNames = KNOWN_AGENTS.slice();
+      Object.keys(perProject).forEach(function (key) {
+        if (agentNames.indexOf(key) === -1) agentNames.push(key);
+      });
+      agentNames.forEach(function (key) {
+        agentsBox.appendChild(agentRow(key, perProject[key]));
+      });
+      card.appendChild(agentsBox);
+
+      var gatesBox = el('div', 'project-gates');
+      gatesBox.appendChild(el('h4', 'project-sub', 'gate history'));
+      var gates = projectGateEvents(p, name, data && data.events);
+      if (gates.length === 0) {
+        gatesBox.appendChild(el('p', 'gate-no-reasons', 'no gate verdicts yet'));
+      } else {
+        gates.slice(0, MAX_PROJECT_GATES).forEach(function (evt) {
+          gatesBox.appendChild(gateEntry(evt, name));
+        });
+        if (gates.length > MAX_PROJECT_GATES) {
+          gatesBox.appendChild(el('p', 'gate-no-reasons',
+            '+ ' + (gates.length - MAX_PROJECT_GATES) + ' older verdicts'));
+        }
+      }
+      card.appendChild(gatesBox);
+
+      box.appendChild(card);
+    });
+  }
+
+  /* ---------- merged agents ---------- */
+
   function renderAgents(agents) {
     var grid = document.getElementById('agents');
     grid.replaceChildren();
 
-    var names = KNOWN_AGENTS.slice();
-    Object.keys(agents || {}).forEach(function (name) {
-      if (names.indexOf(name) === -1) names.push(name);
-    });
+    var names = Object.keys(agents || {});
+    // With no fleet data at all, keep the classic coder/tester placeholders
+    // so the page still shows the expected shape of the fleet.
+    if (names.length === 0) names = KNOWN_AGENTS.slice();
+    names.sort();
 
-    var rendered = 0;
     names.forEach(function (name) {
       var info = (agents && agents[name]) || null;
-      if (!info && KNOWN_AGENTS.indexOf(name) === -1) return;
 
       var state = info && info.state ? String(info.state) : 'unknown';
       var card = el('article', 'agent-card state-' + safeIdPart(state));
@@ -83,13 +289,10 @@
       card.appendChild(since);
 
       grid.appendChild(card);
-      rendered += 1;
     });
-
-    if (rendered === 0) {
-      grid.appendChild(el('div', 'grid-empty', 'no fleet data yet'));
-    }
   }
+
+  /* ---------- merged activity feed ---------- */
 
   function renderEvents(events) {
     var feed = document.getElementById('activity');
@@ -112,11 +315,12 @@
       var kind = evt.kind ? String(evt.kind) : '?';
 
       row.appendChild(el('span', 'evt-ts', evt.ts ? String(evt.ts) : '—'));
+      row.appendChild(el('span', 'evt-project', evt.project ? String(evt.project) : '—'));
       row.appendChild(el('span', 'evt-kind ' + (KIND_CLASS[kind] || 'k-plain'), kind));
 
       var fields = el('span', 'evt-fields');
       Object.keys(evt).forEach(function (key) {
-        if (key === 'ts' || key === 'kind') return;
+        if (key === 'ts' || key === 'kind' || key === 'project') return;
         var value = evt[key];
         var pair = el('span', null);
         var label = el('b', null, key);
@@ -131,16 +335,7 @@
     });
   }
 
-  function sortNewestFirst(rows) {
-    rows.sort(function (a, b) {
-      var ta = a && a.ts ? String(a.ts) : '';
-      var tb = b && b.ts ? String(b.ts) : '';
-      if (ta < tb) return 1;
-      if (ta > tb) return -1;
-      return 0;
-    });
-    return rows;
-  }
+  /* ---------- merged gate history ---------- */
 
   function renderGates(events) {
     var section = document.getElementById('gate-history');
@@ -172,40 +367,13 @@
     list.replaceChildren();
 
     rows.forEach(function (evt) {
-      var isGreen = evt.kind === 'gate_green_merged';
-      var entry = el('article', 'gate-entry ' + (isGreen ? 'gate-green' : 'gate-red'));
-
-      var head = el('div', 'gate-head');
-      head.appendChild(el('span', 'gate-verdict', isGreen ? 'merged' : 'rejected'));
-
-      var prNum = evt.pr !== undefined && evt.pr !== null ? String(evt.pr) : '';
-      if (/^\d+$/.test(prNum)) {
-        var link = el('a', 'gate-pr', 'PR #' + prNum);
-        link.href = 'https://github.com/Nodenester/loomlet/pull/' + prNum;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        head.appendChild(link);
-      } else if (prNum) {
-        head.appendChild(el('span', 'gate-pr', 'PR ' + prNum));
+      var repo = evt.project ? String(evt.project) : 'loomlet';
+      var entry = gateEntry(evt, repo);
+      if (evt.project) {
+        var head = entry.querySelector('.gate-head');
+        if (head) head.insertBefore(el('span', 'gate-project', String(evt.project)),
+          head.firstChild ? head.firstChild.nextSibling : null);
       }
-
-      head.appendChild(el('span', 'gate-ts', evt.ts ? String(evt.ts) : '—'));
-      entry.appendChild(head);
-
-      if (!isGreen) {
-        var reasons = Array.isArray(evt.reasons) ? evt.reasons : [];
-        if (reasons.length > 0) {
-          var ul = el('ul', 'gate-reasons');
-          reasons.forEach(function (reason) {
-            ul.appendChild(el('li', null,
-              typeof reason === 'string' ? reason : JSON.stringify(reason)));
-          });
-          entry.appendChild(ul);
-        } else {
-          entry.appendChild(el('p', 'gate-no-reasons', 'no reasons recorded'));
-        }
-      }
-
       list.appendChild(entry);
     });
 
@@ -213,6 +381,8 @@
       list.appendChild(el('div', 'feed-empty', 'no gate verdicts yet'));
     }
   }
+
+  /* ---------- sync / polling ---------- */
 
   function setOnline(online) {
     var banner = document.getElementById('offline-banner');
@@ -236,6 +406,8 @@
   }
 
   function render(data) {
+    renderSafely(renderPipeline, data);
+    renderSafely(renderProjects, data);
     renderSafely(renderAgents, data && data.agents);
     renderSafely(renderGates, data && data.events);
     renderSafely(renderEvents, data && data.events);
