@@ -143,10 +143,16 @@
   }
 
   function renderGates(events) {
+    var section = document.getElementById('gate-history');
     var list = document.getElementById('gate-list');
     var merged = document.getElementById('count-merged');
     var rejected = document.getElementById('count-rejected');
-    list.replaceChildren();
+    if (!list && section) {
+      list = el('div', 'gate-list');
+      list.id = 'gate-list';
+      section.appendChild(list);
+    }
+    if (!list || !merged || !rejected) return;
 
     var rows = (Array.isArray(events) ? events : []).filter(function (evt) {
       return evt && (evt.kind === 'gate_green_merged' || evt.kind === 'gate_red');
@@ -155,11 +161,18 @@
 
     var greens = 0;
     var reds = 0;
+    rows.forEach(function (evt) {
+      if (evt.kind === 'gate_green_merged') greens += 1; else reds += 1;
+    });
+    // Counters first: even if an individual entry below trips on an
+    // unexpected payload, the totals stay truthful.
+    merged.textContent = greens + ' merged';
+    rejected.textContent = reds + ' rejected';
+
+    list.replaceChildren();
 
     rows.forEach(function (evt) {
       var isGreen = evt.kind === 'gate_green_merged';
-      if (isGreen) greens += 1; else reds += 1;
-
       var entry = el('article', 'gate-entry ' + (isGreen ? 'gate-green' : 'gate-red'));
 
       var head = el('div', 'gate-head');
@@ -196,9 +209,6 @@
       list.appendChild(entry);
     });
 
-    merged.textContent = greens + ' merged';
-    rejected.textContent = reds + ' rejected';
-
     if (rows.length === 0) {
       list.appendChild(el('div', 'feed-empty', 'no gate verdicts yet'));
     }
@@ -218,10 +228,17 @@
     }
   }
 
+  function renderSafely(fn, arg) {
+    // A malformed payload in one section must not blank the others.
+    try { fn(arg); } catch (err) {
+      if (window.console && console.error) console.error('loomlet render:', err);
+    }
+  }
+
   function render(data) {
-    renderAgents(data && data.agents);
-    renderGates(data && data.events);
-    renderEvents(data && data.events);
+    renderSafely(renderAgents, data && data.agents);
+    renderSafely(renderGates, data && data.events);
+    renderSafely(renderEvents, data && data.events);
   }
 
   function tick() {
