@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Loomlet — fleet manager</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230e120d'/%3E%3Cpath d='M3 2v12h10v-2H5V2z' fill='%23e3a73c'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 <div class="weave" aria-hidden="true"></div>
@@ -71,6 +71,23 @@
         <path class="feedback" d="M 512 68 C 512 132, 208 132, 208 76" fill="none" marker-end="url(#mk-back)"/>
         <text class="feedback-label" x="360" y="152" text-anchor="middle">failures return as issues</text>
       </svg>
+
+      <!-- Narrow-viewport variant: same stages stacked vertically, toggled via CSS.
+           Live highlighting is mirrored onto [data-stage] by renderPipeline(). -->
+      <div class="pipeline-stack" role="img"
+           aria-label="Agent pipeline: planner to coder to tester to deterministic gate to deploy; failures return from the gate to the coder as issues">
+        <div class="ps-stage" data-stage="planner"><span class="ps-label">PLANNER</span></div>
+        <div class="ps-down" aria-hidden="true"></div>
+        <div class="ps-stage" data-stage="coder"><span class="ps-label">CODER</span></div>
+        <div class="ps-down" aria-hidden="true"></div>
+        <div class="ps-stage" data-stage="tester"><span class="ps-label">TESTER</span></div>
+        <div class="ps-down" aria-hidden="true"></div>
+        <div class="ps-stage" data-stage="gate"><span class="ps-sub">deterministic</span><span class="ps-label">GATE</span></div>
+        <div class="ps-down" aria-hidden="true"></div>
+        <div class="ps-stage" data-stage="deploy"><span class="ps-label">DEPLOY</span></div>
+        <div class="ps-rail" aria-hidden="true"></div>
+        <div class="ps-feedback">failures return as issues</div>
+      </div>
     </div>
   </section>
 
@@ -110,6 +127,6 @@
   </div>
 </footer>
 
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>
